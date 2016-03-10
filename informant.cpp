@@ -45,7 +45,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 			{
 				if (news_per_current_event == 0) {
 					current_event++;
-					news_per_current_event = rand() % 20;
+					news_per_current_event = rand() % MAX_NEWS_PER_EVENT;
 					current_area = rand() % num_areas;
 				} else {
 					dest = rand() % num_reporters_per_area[current_area];
