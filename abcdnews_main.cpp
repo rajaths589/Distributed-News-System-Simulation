@@ -1,3 +1,5 @@
+#include <mpi.h>
+#include "abcdnews.h"
 
 //process 0 is always the tipper
 
@@ -14,7 +16,7 @@ int main(int argc, char** argv) {
 
 	//News Datatype
 	const int dt_num = 3;
-	MPI_Datatype dt_type[3] = {MPI_INT, MPI_INT, MPI_DOUBLE};
+	MPI_Datatype dt_type[3] = {MPI_UNSIGNED, MPI_UNSIGNED, MPI_DOUBLE};
 
 	int dt_blocklen[3] = {1,1,1};
 
@@ -33,16 +35,16 @@ int main(int argc, char** argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
 
-	MPI_Comm job_comm, org_comm, news_source_comm, editor_partition_comm;
+	MPI_Comm editors_comm, org_comm, news_source_comm, editor_partition_comm;
 
 	if (!readConfig(argv[1], &colorMatrix, &num_editors, &num_partitions, world_size)) {
 		printf("Error in reading configuration file! \n");
 		return 0;
 	}
 
-	if (world_rank == 0) MPI_Comm_split(MPI_COMM_WORLD, 0, world_rank, &job_comm);
-	else if (world_rank <= num_editors) MPI_Comm_split(MPI_COMM_WORLD, 1, world_rank, &job_comm);
-	else MPI_Comm_split(MPI_COMM_WORLD, 2, world_rank, &job_comm);
+	if (world_rank == 0) MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &editors_comm);
+	else if (world_rank <= num_editors) MPI_Comm_split(MPI_COMM_WORLD, 1, world_rank, &editors_comm);
+	else MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &job_comm);
 
 	int* org_color = (int*) malloc(sizeof(int)*world_size);
 	org_color[0] = MPI_UNDEFINED;
@@ -76,6 +78,7 @@ int main(int argc, char** argv) {
 
 
 
+	int *reporters_area = (int*) malloc((world_size - num_editors - 1) * sizeof(int));
 	org_color[0] = MPI_UNDEFINED;
 	for (i = 1; i <= num_editors; i++)
 		org_color[i] = MPI_UNDEFINED;
@@ -86,12 +89,17 @@ int main(int argc, char** argv) {
 		for (j = 0; j < num_partitions; j++) {
 			for (int k = 0; k < colorMatrix[i][j]; k++) {
 				org_color[current_reporter_index] = current_color;
+				reporters_area[current_reporter_index - num_editors - 1] = j;
 				current_reporter_index ++;
 			}
 			current_color ++;
 		}
 	}
 	MPI_Comm_split(MPI_COMM_WORLD, color[world_rank], world_rank, &editor_partition_comm);
+
+	if (world_rank == 0) informant(news_source_comm, reporters_area, num_partitions, dt_news);
+	else if (world_rank <= num_editors) editor(editors_comm, org_comm, dt_news);
+	else reporter(org_comm, news_source_comm, editor_partition_comm, dt_news);
 
 	MPI_Finalize();
 	return 0;
@@ -112,7 +120,7 @@ int readConfig(const char* configfile, int*** colorMatrix, int* num_editors, int
 
 	for (i = 0; i < num_partitions; i++)
 		for (j = 0; j < num_editors; j++) {
-			scanf("%d",&((*colorMatrix)[i][j]));
+			fscanf("%d",&((*colorMatrix)[i][j]));
 			num_reporters += (*colorMatrix)[i][j];
 		}
 
