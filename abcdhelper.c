@@ -3,22 +3,32 @@
 newsitem* createQueue(int size)
 {
 	newsitem* ret_queue = (newsitem *) calloc(size, sizeof(newsitem));
+	return ret_queue;
 }
 
 void insert(newsitem *queue, newsitem * news_to_insert, int *queue_len)
 {
 	int i;
 
+	if ((*queue_len) == 0)
+	{
+		queue[0].area = news_to_insert->area;
+		queue[0].event = news_to_insert->event;
+		queue[0].time_stamp = news_to_insert->time_stamp;
+		(*queue_len)++;
+		return;
+	}
+
 	//TODO: To ping or not to ping? 
 	for(i=0; i<*queue_len; i++) 
 	{
-		if( (queue[i].event == news_to_insert->event) && (queue[i].area > news_to_insert->area) ){
-			if( queue[i].time_stamp < news_to_insert->time_stamp ) queue[i].time_stamp < news_to_insert->time_stamp;
+		if ( (queue[i].event == news_to_insert->event)) {
+			if ( queue[i].time_stamp < news_to_insert->time_stamp ) queue[i].time_stamp = news_to_insert->time_stamp;
 			return;
 		}
 	}
 
-	for(i= *queue_len; i>=0; i--) {
+	for(i= (*queue_len)-1; i>=0; i--) {
 
 		//Should Area be checked
 		if(queue[i].event > news_to_insert->event) {
@@ -29,11 +39,12 @@ void insert(newsitem *queue, newsitem * news_to_insert, int *queue_len)
 
 		} 
 		else {
-			queue[i+1].area = news_to_insert->area;
-			queue[i+1].event = news_to_insert->event;
-			queue[i+1].time_stamp = news_to_insert->time_stamp;
+			break;
 		}
 	}
+	queue[i+1].area = news_to_insert->area;
+	queue[i+1].event = news_to_insert->event;
+	queue[i+1].time_stamp = news_to_insert->time_stamp;
 
 	(*queue_len)++;
 

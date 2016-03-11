@@ -3,10 +3,11 @@
 #include <stdlib.h>
 
 void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
-	int i;
+	int i, world_rank;
 
 	int my_rank, num_editors, num_reporters;
 	MPI_Comm_rank(editors_contact, &my_rank);
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	MPI_Comm_size(editors_contact, &num_editors);
 	MPI_Comm_size(org_comm, &num_reporters);	
 	num_reporters -= 1;		// editor is process 0 in org_comm
@@ -63,7 +64,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, editors_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					//printf("Broadcast complete1! Collective count: %d\n", collective_count);
+					printf("Broadcast complete1! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -73,7 +74,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, editors_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					//printf("Broadcast complete2! Collective count: %d\n", collective_count);
+					printf("Broadcast complete2! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -87,7 +88,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 						MPI_Get_count(&tip_status, MPI_INT, &num_messages);
 						for (i = 0; i < num_messages; i++)
 							insert(queue, &tip_buffer[i], &queue_length);
-
+						printf("Received information in editor %d\n", world_rank);
 						collective_count++;
 						incomplete_tip = 0;
 					}
@@ -97,7 +98,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 					tip_flag = 0;
 					MPI_Irecv(tip_buffer, 3*MAX_REPORTER_COLLECTIVE_COUNT, news_t, MPI_ANY_SOURCE, EDITOR_FORWARD_TAG, org_comm, 
 						&tip_request);
-					incomplete_tip = 1;					
+					incomplete_tip = 1;
 				}
 
 				if (incomplete_ping) {
@@ -144,7 +145,12 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 				}
 			}
 
-			MPI_Gatherv(queue, queue_length, news_t, gather_queue, gather_recvcounts, gather_recvdispls, news_t, my_rank, editors_contact);		
+//			MPI_Gather(&queue_length, 1, MPI_INT, gather_recvcounts, 1, MPI_INT, my_rank, editors_contact);
+			gather_recvdispls[0] = 0;
+			for (int i = 1; i < num_editors; i++)
+				gather_recvdispls[i] = gather_recvdispls[i-1] + gather_recvcounts[i-1];
+
+			MPI_Gatherv(queue, queue_length, news_t, gather_queue, gather_recvcounts, gather_recvdispls, news_t, my_rank, editors_contact);
 			//Need to online sort here! 
 			//qsort(gather_queue, sum(gather_recvcounts), sizeof(newsitem), compare_newsitems);
 			livetelecast_queue_length = 0;
@@ -154,8 +160,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 			for (int i = 0; i < livetelecast_queue_length; i++)
 				printNews(&livetelecast_queue[i]);
 
-			meeting_count++;
-			//printf("Gather in process : %d Collective count: %d\n\n", my_rank, collective_count);
+			meeting_count++;			
 
 		} else {
 			//normal reporter
@@ -186,6 +191,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 						for (i = 0; i < num_messages; i++)
 							insert(queue, &tip_buffer[i], &queue_length);
 
+						printf("Received information in editor %d\n", world_rank);
 						ping_count++;
 						incomplete_tip = 0;
 					}
@@ -224,6 +230,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 				ping_count --;
 			}
 
+			MPI_Gather(&queue_length, 1, MPI_INT, NULL, 1, MPI_INT, (meeting_count % num_editors), editors_contact);
 			MPI_Gatherv(queue, queue_length, news_t, NULL, NULL, NULL, news_t, (meeting_count % num_editors), editors_contact);
 			meeting_count ++;
 		}

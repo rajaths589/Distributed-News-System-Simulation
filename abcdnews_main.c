@@ -66,14 +66,13 @@ int main(int argc, char** argv) {
 		org_color[i+1] = i;
 
 		for (j = 0; j < num_partitions; j++)
-			num_reporters_per_editor += colorMatrix[i][j];
+			num_reporters_per_editor += colorMatrix[j][i];
 
 		for (j = 0; j < num_reporters_per_editor; j++) {
 			org_color[current_reporter_index] = i;
 			current_reporter_index++;
 		}
 	}
-
 	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &org_comm);
 
 	org_color[0] = 0;
@@ -81,8 +80,7 @@ int main(int argc, char** argv) {
 		org_color[i] = MPI_UNDEFINED;
 	for(i = num_editors + 1; i < world_size; i++)
 		org_color[i] = 0;
-	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &news_source_comm);	
-
+	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &news_source_comm);
 
 	int *reporters_area = (int*) malloc((world_size - num_editors - 1) * sizeof(int));
 	org_color[0] = MPI_UNDEFINED;
@@ -93,7 +91,7 @@ int main(int argc, char** argv) {
 
 	for (i = 0; i < num_editors; i++) {
 		for (j = 0; j < num_partitions; j++) {
-			for (int k = 0; k < colorMatrix[i][j]; k++) {
+			for (int k = 0; k < colorMatrix[j][i]; k++) {
 				org_color[current_reporter_index] = current_color;
 				reporters_area[current_reporter_index - num_editors - 1] = j;
 				current_reporter_index ++;
@@ -101,7 +99,6 @@ int main(int argc, char** argv) {
 			current_color ++;
 		}
 	}
-
 	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &editor_partition_comm);
 
 	int editor_rank;
@@ -139,7 +136,7 @@ int readConfig(const char* configfile, int*** colorMatrix, int* num_editors, int
 
 		free(*colorMatrix);
 		colorMatrix = NULL;
-
+				
 		return 0;
 	}
 
