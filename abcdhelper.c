@@ -66,3 +66,7 @@ int sumArray(int* arr, int len) {
 void printNews(newsitem* nitem) {
 	printf("Time : %lf Event : %u Area : %u\n", nitem->time_stamp, nitem->event, nitem->area);
 }
+
+void printNewsRank(int rank, newsitem* nitem) {
+	printf("Rank : %d Time : %lf Event : %u Area : %u\n", rank, nitem->time_stamp, nitem->event, nitem->area);
+}

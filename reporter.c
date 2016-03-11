@@ -3,6 +3,9 @@
 
 void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm collegues_contact, MPI_Datatype news_t) {	
 	int my_rank, num_reporters;
+	int world_rank;
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
 	MPI_Comm_rank(collegues_contact, &my_rank);
 	MPI_Comm_size(collegues_contact, &num_reporters);
@@ -60,7 +63,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, collegues_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					//printf("Broadcast complete1! Collective count: %d\n", collective_count);
+					printf("Broadcast complete1! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -70,7 +73,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, collegues_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					//printf("Broadcast complete2! Collective count: %d\n", collective_count);
+					printf("Broadcast complete2! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -79,6 +82,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 
 					if (tip_flag) {
 						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
+						printNewsRank(world_rank, &tip_buffer);
 						insert(queue, &tip_buffer, &queue_length);
 						collective_count++;
 						incomplete_tip = 0;
@@ -135,7 +139,8 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 				}
 			}
 
-			MPI_Gatherv(queue, queue_length, news_t, gather_queue, gather_recvcounts, gather_recvdispls, news_t, my_rank, collegues_contact);			
+			printf("Gathering...\n");
+			MPI_Gatherv(queue, queue_length, news_t, gather_queue, gather_recvcounts, gather_recvdispls, news_t, my_rank, collegues_contact);
 			//Need to online sort here! 
 			//qsort(gather_queue, sum(gather_recvcounts), sizeof(newsitem), compare_newsitems);
 			forward_queue_length = 0;
@@ -162,6 +167,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 
 					if (bcast_flag) {
 						incomplete_bcast = 0;
+						printf("Broadcast received in process %d\n", world_rank);
 						break;
 					}
 				}
@@ -171,6 +177,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 					if (tip_flag) {
 
 						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
+						printNewsRank(world_rank, &tip_buffer);
 						insert(queue, &tip_buffer, &queue_length);
 						ping_count++;
 						incomplete_tip = 0;
@@ -209,6 +216,7 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 				ping_count --;
 			}
 
+			printf("Gathering...\n");
 			MPI_Gatherv(queue, queue_length, news_t, NULL, NULL, NULL, news_t, (meeting_count % num_reporters), collegues_contact);
 			meeting_count ++;
 		}
