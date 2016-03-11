@@ -17,6 +17,12 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 	MPI_Status tip_status, ping_status, bcast_status;
 	int bcast_buffer, ping_buffer;
 	newsitem tip_buffer;
+	
+
+	newsitem *queue = NULL;
+	int queue_length;
+
+
 	int gather_buffer[num_reporters];
 
 	incomplete_tip = 0;
@@ -29,6 +35,11 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 		incomplete_bcast = 0;
 		collective_count = 0;
 		incomplete_ping = 0;
+
+		queue_length = 0;
+		free(queue);
+
+		queue = createQueue();
 
 		if ((meeting_count % num_reporters) == my_rank) {
 			//lead reporter
@@ -59,7 +70,8 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 					MPI_Test(&tip_request, &tip_flag, &tip_status);
 
 					if (tip_flag) {
-						printf("Received information %d in process %d\n", tip_buffer, my_rank);
+						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
+						insert(queue, &tip_buffer, queue_length);
 						collective_count++;
 						incomplete_tip = 0;
 					}
@@ -140,7 +152,9 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 				if (incomplete_tip) {
 					MPI_Test(&tip_request, &tip_flag, &tip_status);
 					if (tip_flag) {
-						printf("Received information %d in process %d\n", tip_buffer, my_rank);
+
+						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
+						insert(queue, &tip_buffer, queue_length);
 						ping_count++;
 						incomplete_tip = 0;
 					}
@@ -183,3 +197,45 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 		}
 	}
 }
+
+newsitem* createQueue()
+{
+	newsitem* ret_queue = (newsitem *) calloc(MAX_QUEUE_SIZE, sizeof(newsitem));
+}
+
+void insert(newsitem *queue, newsitem * news_to_insert, int *queue_len)
+{
+	int i;
+
+	//TODO: To ping or not to ping? 
+	for(i=0; i<*queue_len; i++) 
+	{
+		if( (queue[i].event == news_to_insert->event) && (queue[i].area > news_to_insert->area) ){
+			if( queue[i].time_stamp < news_to_insert->time_stamp ) queue[i].time_stamp < news_to_insert->time_stamp;
+			return;
+		}
+	}
+
+	for(i= *queue_len; i>=0; i--) {
+
+		//Should Area be checked
+		if(queue[i].event > news_to_insert->event) {
+
+			queue[i+1].event = queue[i].event;
+			queue[i+1].area = queue[i].area;
+			queue[i+1].time_stamp = queue[i].time_stamp;
+
+		} 
+		else {
+			queue[i+1].area = news_to_insert->area;
+			queue[i+1].event = news_to_insert->event;
+			queue[i+1].time_stamp = news_to_insert->time_stamp;
+		}
+	}
+
+	(*queue_len)++;
+
+}
+
+
+
