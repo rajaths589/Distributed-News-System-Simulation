@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stddef.h>
 #include "abcdnews.h"
+#include <stdio.h>
 
 //process 0 is always the tipper
 
@@ -75,14 +76,12 @@ int main(int argc, char** argv) {
 
 	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &org_comm);
 
-
 	org_color[0] = 0;
 	for (i = 1; i <= num_editors; i++)
 		org_color[i] = MPI_UNDEFINED;
 	for(i = num_editors + 1; i < world_size; i++)
 		org_color[i] = 0;
-	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &news_source_comm);
-
+	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &news_source_comm);	
 
 
 	int *reporters_area = (int*) malloc((world_size - num_editors - 1) * sizeof(int));
@@ -102,8 +101,10 @@ int main(int argc, char** argv) {
 			current_color ++;
 		}
 	}
+
 	MPI_Comm_split(MPI_COMM_WORLD, org_color[world_rank], world_rank, &editor_partition_comm);
 
+	int editor_rank;
 	if (world_rank == 0) informant(news_source_comm, reporters_area, num_partitions, dt_news);
 	else if (world_rank <= num_editors) editor(editors_comm, org_comm, dt_news);
 	else reporter(org_comm, news_source_comm, editor_partition_comm, dt_news);

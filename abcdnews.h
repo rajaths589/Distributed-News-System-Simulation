@@ -30,6 +30,7 @@ void informant(MPI_Comm, int*, int, MPI_Datatype);
 void reporter(MPI_Comm, MPI_Comm, MPI_Comm, MPI_Datatype);
 void editor(MPI_Comm, MPI_Comm, MPI_Datatype);
 void printNews(newsitem* nitem);
+void printNewsRank(int rank, newsitem* nitem);
 int sumArray(int* arr, int len);
 int compare_newsitems(const void* newsA, const void* newsB);
 void insert(newsitem *queue, newsitem * news_to_insert, int *queue_len);
