@@ -2,6 +2,7 @@
 #include "abcdnews.h"
 #include <stdlib.h>
 
+
 void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 	int i, world_rank;
 
@@ -33,8 +34,8 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 	int queue_length;
 	int livetelecast_queue_length;
 
-	int gather_recvcounts[num_editors];
-	int gather_recvdispls[num_editors];
+	int *gather_recvcounts = (int*) calloc(num_editors, sizeof(int));
+	int *gather_recvdispls = (int*) calloc(num_editors, sizeof(int));
 
 	incomplete_tip = 0;
 	incomplete_bcast = 0;
@@ -64,7 +65,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, editors_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					printf("Broadcast complete1! Collective count: %d\n", collective_count);
+					//printf("Broadcast complete1! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -74,7 +75,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, editors_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					printf("Broadcast complete2! Collective count: %d\n", collective_count);
+					//printf("Broadcast complete2! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -85,10 +86,11 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
 						//insert(queue, &tip_buffer, queue_length);
 						int num_messages;
-						MPI_Get_count(&tip_status, MPI_INT, &num_messages);
+						MPI_Get_count(&tip_status, news_t, &num_messages);
 						for (i = 0; i < num_messages; i++)
 							insert(queue, &tip_buffer[i], &queue_length);
-						printf("Received information in editor %d\n", world_rank);
+						//printf("EDITOR : %d NUM Messages:%d\n", world_rank, num_messages);
+						//printf("Received information in editor %d\n", world_rank);
 						collective_count++;
 						incomplete_tip = 0;
 					}
@@ -145,7 +147,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 				}
 			}
 
-//			MPI_Gather(&queue_length, 1, MPI_INT, gather_recvcounts, 1, MPI_INT, my_rank, editors_contact);
+			MPI_Gather(&queue_length, 1, MPI_INT, gather_recvcounts, 1, MPI_INT, my_rank, editors_contact);
 			gather_recvdispls[0] = 0;
 			for (int i = 1; i < num_editors; i++)
 				gather_recvdispls[i] = gather_recvdispls[i-1] + gather_recvcounts[i-1];
@@ -156,7 +158,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 			livetelecast_queue_length = 0;
 			for (int i = 0; i < sumArray(gather_recvcounts, num_editors); i++)
 				insert(livetelecast_queue, &gather_queue[i], &livetelecast_queue_length);
-
+			//printf("EDITOR RANK : %d livetelecast_queue_length:%d\n", world_rank, livetelecast_queue_length);
 			for (int i = 0; i < livetelecast_queue_length; i++)
 				printNews(&livetelecast_queue[i]);
 
@@ -187,11 +189,11 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 						//printf("Received information %d in process %d\n", tip_buffer, my_rank);
 						//insert(queue, &tip_buffer, queue_length);
 						int num_messages;
-						MPI_Get_count(&tip_status, MPI_INT, &num_messages);
+						MPI_Get_count(&tip_status,news_t, &num_messages);
 						for (i = 0; i < num_messages; i++)
 							insert(queue, &tip_buffer[i], &queue_length);
 
-						printf("Received information in editor %d\n", world_rank);
+						//printf("Received information in editor %d\n", world_rank);
 						ping_count++;
 						incomplete_tip = 0;
 					}
@@ -199,7 +201,7 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 
 				if (!incomplete_tip) {
 					tip_flag = 0;
-					MPI_Irecv(&tip_buffer, 3*MAX_REPORTER_COLLECTIVE_COUNT, news_t, MPI_ANY_SOURCE, EDITOR_FORWARD_TAG, org_comm, 
+					MPI_Irecv(tip_buffer, 3*MAX_REPORTER_COLLECTIVE_COUNT, news_t, MPI_ANY_SOURCE, EDITOR_FORWARD_TAG, org_comm, 
 						&tip_request);
 					incomplete_tip = 1;
 				}

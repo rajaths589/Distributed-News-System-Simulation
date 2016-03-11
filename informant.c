@@ -43,7 +43,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 	int news_per_current_event = 0;
 	unsigned int current_area;
 
-	#pragma omp parallel num_threads(4)
+	#pragma omp parallel num_threads(16)
 	{
 		int dest;
 		int flag;

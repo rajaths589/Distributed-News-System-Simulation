@@ -154,13 +154,11 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 			//qsort(gather_queue, sum(gather_recvcounts), sizeof(newsitem), compare_newsitems);
 			forward_queue_length = 0;
 			for (int i = 0; i < sumArray(gather_recvcounts, num_reporters); i++)
-				insert(forward_to_editor_queue, &gather_queue[i], &forward_queue_length);
-
+				insert(forward_to_editor_queue, &gather_queue[i], &forward_queue_length);			
 			MPI_Send(forward_to_editor_queue, forward_queue_length, news_t, editor_rank, EDITOR_FORWARD_TAG, editor_contact);
-
+			//printf("forward_queue_length : %d\n", forward_queue_length);
 
 			meeting_count++;
-			//printf("Gather in process : %d Collective count: %d\n", world_rank, collective_count);
 
 		} else {
 			//normal reporter
