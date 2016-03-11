@@ -20,15 +20,24 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 	
 
 	newsitem *queue = NULL;
+	newsitem *gather_queue = NULL;
+	newsitem *forward_to_editor_queue = NULL;
+
 	int queue_length;
+	int forward_queue_length;
 
 
-	int gather_buffer[num_reporters];
+	int gather_recvcounts[num_reporters];
+	int gather_recvdispls[num_reporters];
 
 	incomplete_tip = 0;
 	incomplete_bcast = 0;
 	tip_flag = 0;
 	bcast_flag = 0;
+
+	queue = createQueue(2*MAX_REPORTER_COLLECTIVE_COUNT);
+	gather_queue = createQueue(3*MAX_REPORTER_COLLECTIVE_COUNT);
+	forward_to_editor_queue = createQueue(3*MAX_REPORTER_COLLECTIVE_COUNT);
 
 	while (1) {
 
@@ -36,33 +45,30 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 		collective_count = 0;
 		incomplete_ping = 0;
 
-		queue_length = 0;
-		free(queue);
-
-		queue = createQueue();
+		queue_length = 0;		
 
 		if ((meeting_count % num_reporters) == my_rank) {
 			//lead reporter
 
 			session_start = MPI_Wtime();
 			while (1) {
-				if ((MPI_Wtime() - session_start) > max_session_duration) {
+				if ((MPI_Wtime() - session_start) > MAX_REPORTER_SESSION_DURATION) {
 					bcast_buffer = 1;
 
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, collegues_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					printf("Broadcast complete1! Collective count: %d\n", collective_count);
+					//printf("Broadcast complete1! Collective count: %d\n", collective_count);
 					break;
 				}
 
-				if (collective_count > max_collective_count) {
+				if (collective_count > MAX_REPORTER_COLLECTIVE_COUNT) {
 					bcast_buffer = 1;
 
 					// Blocking and nonblocking collective operations do not match.
 					MPI_Ibcast(&bcast_buffer, 1, MPI_INT, my_rank, collegues_contact, &bcast_request);
 					MPI_Wait(&bcast_request, &bcast_status);
-					printf("Broadcast complete2! Collective count: %d\n", collective_count);
+					//printf("Broadcast complete2! Collective count: %d\n", collective_count);
 					break;
 				}
 
@@ -127,7 +133,16 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 				}
 			}
 
-			MPI_Gather(&bcast_buffer, 1, MPI_INT, gather_buffer, 1, MPI_INT, my_rank, collegues_contact);
+			MPI_Gatherv(queue, queue_length, news_t, gather_queue, gather_recvcounts, gather_recvdispls, news_t, my_rank, collegues_contact);			
+			//Need to online sort here! 
+			//qsort(gather_queue, sum(gather_recvcounts), sizeof(newsitem), compare_newsitems);
+			forward_queue_length = 0;
+			for (int i = 0; i < sumArray(gather_recvcounts, num_reporters); i++)
+				insert(forward_to_editor_queue, &gather_queue[i], &forward_queue_length);
+
+			MPI_Send(forward_queue_length, forward_queue_length, news_t, 0, EDITOR_FORWARD_TAG, editor_contact);
+
+
 			meeting_count++;
 			printf("Gather in process : %d Collective count: %d\n\n", my_rank, collective_count);
 
@@ -192,50 +207,10 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 				ping_count --;
 			}
 
-			MPI_Gather(&bcast_buffer, 1, MPI_INT, NULL, 1, MPI_INT, (meeting_count % num_reporters), collegues_contact);
+			MPI_Gatherv(queue, queue_length, news_t, NULL, NULL, NULL, news_t, (meeting_count % num_reporters), collegues_contact);
 			meeting_count ++;
 		}
 	}
+
+	free(queue);
 }
-
-newsitem* createQueue()
-{
-	newsitem* ret_queue = (newsitem *) calloc(MAX_QUEUE_SIZE, sizeof(newsitem));
-}
-
-void insert(newsitem *queue, newsitem * news_to_insert, int *queue_len)
-{
-	int i;
-
-	//TODO: To ping or not to ping? 
-	for(i=0; i<*queue_len; i++) 
-	{
-		if( (queue[i].event == news_to_insert->event) && (queue[i].area > news_to_insert->area) ){
-			if( queue[i].time_stamp < news_to_insert->time_stamp ) queue[i].time_stamp < news_to_insert->time_stamp;
-			return;
-		}
-	}
-
-	for(i= *queue_len; i>=0; i--) {
-
-		//Should Area be checked
-		if(queue[i].event > news_to_insert->event) {
-
-			queue[i+1].event = queue[i].event;
-			queue[i+1].area = queue[i].area;
-			queue[i+1].time_stamp = queue[i].time_stamp;
-
-		} 
-		else {
-			queue[i+1].area = news_to_insert->area;
-			queue[i+1].event = news_to_insert->event;
-			queue[i+1].time_stamp = news_to_insert->time_stamp;
-		}
-	}
-
-	(*queue_len)++;
-
-}
-
-
-
