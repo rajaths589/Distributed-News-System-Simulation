@@ -9,6 +9,7 @@ int informant_rank;
 int editor_rank;
 
 int main(int argc, char** argv) {
+	
 	int world_rank, world_size;
 	int num_editors, num_partitions, **colorMatrix;
 
@@ -18,7 +19,13 @@ int main(int argc, char** argv) {
 	}
 
 	MPI_Init(NULL, NULL);
+	
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
+	if (world_rank == 0)
+		fprintf(stderr, "START TIME: %lf\n", MPI_Wtime());	
+	
 	//News Datatype
 	const int dt_num = 3;
 	MPI_Datatype dt_type[3] = {MPI_UNSIGNED, MPI_UNSIGNED, MPI_DOUBLE};
@@ -35,10 +42,7 @@ int main(int argc, char** argv) {
 
 	MPI_Type_create_struct(dt_num, dt_blocklen, offset, dt_type, &dt_news);
 	MPI_Type_commit(&dt_news);
-
-	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
+	
 
 	MPI_Comm editors_comm, org_comm, news_source_comm, editor_partition_comm;
 

@@ -2,17 +2,20 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <mpi.h>
 #include <omp.h>
 
 #include "abcdnews.h"
 
+#define MAX_NEWS_GENERATED 50
 #define MAX_NEWS_PER_EVENT 5
 
 void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_areas, MPI_Datatype news_t) {	
 
 	int i;
+	int total_count = 0;
 	srand(time(NULL));
 
 	int num_reporters;
@@ -39,11 +42,13 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 
 	free(area_insert_index);
 
+	int total_count_flag = 0;
+	
 	unsigned int current_event = 0;
 	int news_per_current_event = 0;
 	unsigned int current_area;
 
-	#pragma omp parallel num_threads(16)
+	#pragma omp parallel num_threads(1)
 	{
 		int dest;
 		int flag;
@@ -57,13 +62,21 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 					current_area = rand() % num_areas;
 					flag = 1;
 				} else {
+					total_count++;
 					dest = reporters_in_area[current_area][rand() % num_reporters_per_area[current_area]];
-					news_per_current_event --;
+					news_per_current_event --;										
+				}
+				
+				if (total_count == MAX_NEWS_GENERATED) {
+					total_count_flag = 1;
 				}
 			}
 
 			if (flag)
 				continue;
+				
+			if (total_count_flag)
+				break;
 
 			sleep(rand()%2);
 
@@ -75,4 +88,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 			MPI_Send(&news, 1, news_t, dest, NEWS_TAG, news_communicator);
 		}
 	}
+	
+	fprintf(stderr, "END TIME: %lf\n", MPI_Wtime());
+	MPI_Abort(MPI_COMM_WORLD, 0);
 }
