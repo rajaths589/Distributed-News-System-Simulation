@@ -9,6 +9,7 @@
 
 #include "abcdnews.h"
 
+#define NUM_INFORMANTS 4
 #define MAX_NEWS_GENERATED 50
 #define MAX_NEWS_PER_EVENT 5
 
@@ -48,7 +49,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 	int news_per_current_event = 0;
 	unsigned int current_area;
 
-	#pragma omp parallel num_threads(4)
+	#pragma omp parallel num_threads(NUM_INFORMANTS)
 	{
 		int dest;
 		int flag;
@@ -58,8 +59,8 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 			{
 				if (news_per_current_event == 0) {
 					current_event++;
-					news_per_current_event = rand() % MAX_NEWS_PER_EVENT;
-					current_area = rand() % num_areas;
+					news_per_current_event = rand() % MAX_NEWS_PER_EVENT + 1;
+					current_area = rand() % num_areas;					
 					flag = 1;
 				} else {
 					total_count++;
@@ -90,5 +91,5 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 	}
 	
 	fprintf(stderr, "END TIME: %lf\n", MPI_Wtime());
-	MPI_Abort(MPI_COMM_WORLD, 0);
+//	MPI_Abort(MPI_COMM_WORLD, 0);
 }

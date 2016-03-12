@@ -31,9 +31,6 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 	int queue_length;
 	int forward_queue_length;
 
-
-	//int gather_recvcounts[num_reporters];
-	//int gather_recvdispls[num_reporters];
 	int *gather_recvcounts = (int*) calloc(num_reporters, sizeof(int));
 	int *gather_recvdispls = (int*) calloc(num_reporters, sizeof(int));
 
@@ -41,6 +38,8 @@ void reporter(MPI_Comm editor_contact, MPI_Comm informant_contact, MPI_Comm coll
 	incomplete_bcast = 0;
 	tip_flag = 0;
 	bcast_flag = 0;
+
+	ping_buffer = 1;
 
 	queue = createQueue(2*MAX_REPORTER_COLLECTIVE_COUNT);
 	gather_queue = createQueue(3*MAX_REPORTER_COLLECTIVE_COUNT);

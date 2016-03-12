@@ -42,6 +42,8 @@ void editor(MPI_Comm editors_contact, MPI_Comm org_comm, MPI_Datatype news_t) {
 	tip_flag = 0;
 	bcast_flag = 0;
 
+	ping_buffer = 1;
+
 	tip_buffer = createQueue(3*MAX_REPORTER_COLLECTIVE_COUNT);
 	queue = createQueue(2*MAX_REPORTER_COLLECTIVE_COUNT*MAX_EDITOR_COLLECTIVE_COUNT);
 	gather_queue = createQueue(3*MAX_REPORTER_COLLECTIVE_COUNT*MAX_EDITOR_COLLECTIVE_COUNT);
