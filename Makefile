@@ -1,7 +1,7 @@
 CC = mpicc
-CFLAGS = -g -fopenmp -std=c99
+CFLAGS = -g -Wall -O3 -fopenmp -std=c99
 
-all : news
+all : news news_single
 
 news_single : main.o single_editor.o reporter.o informant.o abcdhelper.o
 	$(CC) $(CFLAGS) main.o single_editor.o reporter.o informant.o abcdhelper.o -o news_single

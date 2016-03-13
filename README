@@ -1,0 +1,29 @@
+Build instructions -
+	make
+
+Executables -
+	news_single	---	single editor multiple reporters
+	news		---	multiple editor multiple reporters
+
+Configuration -
+	A configuration file must be supplied to the executable describing the editor-reporter network topology.
+	=========================================================================
+	Template :
+	NUM_EDITORS NUM_AREAS
+	NUM_REPORTERS_11	NUM_REPORTERS_12	...	NUM_REPORTERS_1e
+	.	.		.		.
+	.		.		.		.
+	.			.		.		.
+	NUM_REPORTERS_p1	NUM_REPORTERS_p2	...	NUM_REPORTERS_pe
+	=========================================================================
+
+	1. A pair (I, J) defines a partition - the group of reporters who are allowed to compare their findings to reach a consensus.
+		NUM_REPORTERS_IJ is the number of reporters working in AREA_I, reporting to EDITOR_J - members of the partition (I,J).
+	2. NUM_REPORTERS = Sum[(NUM_REPORTERS_IJ), I=1...NUM_AREAS, J=1...NUM_EDITORS]
+
+Usage - 
+	Single Editor -
+		mpiexec -n (NUM_REPORTERS+2) ./news_single <path_to_config_file>
+	Multiple Editor -
+		mpiexec -n (NUM_REPORTERS+NUM_EDITORS+1) ./news <path_to_config_file>
+
