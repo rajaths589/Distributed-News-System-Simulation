@@ -48,7 +48,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 	int news_per_current_event = 0;
 	unsigned int current_area;
 
-	#pragma omp parallel num_threads(1)
+	#pragma omp parallel num_threads(4)
 	{
 		int dest;
 		int flag;
@@ -67,7 +67,7 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 					news_per_current_event --;										
 				}
 				
-				if (total_count == MAX_NEWS_GENERATED) {
+				if (total_count >= MAX_NEWS_GENERATED) {
 					total_count_flag = 1;
 				}
 			}
@@ -75,8 +75,8 @@ void informant(MPI_Comm news_communicator, int* reporters_area_info, int num_are
 			if (flag)
 				continue;
 				
-			if (total_count_flag)
-				break;
+//			if (total_count_flag)
+//				break;
 
 			sleep(rand()%2);
 

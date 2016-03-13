@@ -16,6 +16,7 @@
 
 extern int informant_rank;
 extern int editor_rank;
+extern double stime;
 
 struct newsitem {
     unsigned int event;
