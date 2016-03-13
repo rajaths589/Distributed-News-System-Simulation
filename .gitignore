@@ -30,3 +30,7 @@
 
 # Debug files
 *.dSYM/
+
+# Binaries
+news
+news_single
